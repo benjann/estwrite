@@ -1,0 +1,10 @@
+v 3
+d estwrite: module to store estimation results on disk
+d 
+d Author: Ben Jann, University of Bern, ben.jann@soz.unibe.ch
+d
+d Distribution-Date: 20200417
+f estwrite.hlp
+f estwrite.ado
+f estread.ado
+f estread.hlp
