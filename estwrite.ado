@@ -8,7 +8,7 @@ prog define estwrite
     if `"`comma'"'=="," | `"`comma'"'=="" {
         local 0 `"using `macval(0)'"'
     }
-    syntax [anything] using/ [, Replace Append Label(str) id(varname) alt estsave ]
+    syntax [anything] using/ [, Replace Append Label(str) id(varname) alt estsave reproducible]
     if c(stata_version)<9 | "`estsave'"!="" {
          estwrite_dta `macval(0)'
          exit
@@ -17,6 +17,7 @@ prog define estwrite
     capt mata: mata drop ESTWRITE_ESTS
     capt mata: mata drop ESTWRITE_ID
     capt mata: mata drop ESTWRITE_STER
+	capt mata: mata drop ESTWRITE_REAL_TIMESTAMP
     capt n estwrite_mata `macval(0)'
     local rc = _rc
     if `rc' {
@@ -29,6 +30,7 @@ prog define estwrite
     capt mata: mata drop ESTWRITE_ESTS
     capt mata: mata drop ESTWRITE_ID
     capt mata: mata drop ESTWRITE_STER
+	capt mata: mata drop ESTWRITE_REAL_TIMESTAMP
     exit `rc'
 end
 
@@ -103,8 +105,9 @@ end
 
 prog define estwrite_mata, sortpreserve
     version 9.2
-    syntax [anything] using/ [, Replace Append Label(str) id(varname) alt ] // label() not used
+    syntax [anything] using/ [, Replace Append Label(str) id(varname) alt reproducible ] // label() not used
     if c(stata_version)<10  local alt alt
+	if "`reproducible'"!="" local alt alt
     local ster = ("`alt'"=="")
     if "`append'"!=""&"`replace'"!="" {
         di as err "only one of replace and append allowed"
@@ -189,7 +192,8 @@ prog define estwrite_mata, sortpreserve
     if "`id'"!="" & "`append'"=="" {
         mata: ESTWRITE_ID = st_isstrvar("`id'") ? st_sdata(.,"`id'") : st_data(.,"`id'")
     }
-    mata: ESTWRITE_FH = estwrite_file_init(ESTWRITE_ESTS, ESTWRITE_ID)
+	mata: ESTWRITE_REAL_TIMESTAMP = st_local("reproducible")==""
+    mata: ESTWRITE_FH = estwrite_file_init(ESTWRITE_ESTS, ESTWRITE_ID, ESTWRITE_REAL_TIMESTAMP)
     if "`append'"!="" {
         mata: estwrite_appendster(ESTWRITE_FH, ESTWRITE_STER)
     }
@@ -240,6 +244,7 @@ if c(stata_version)<9 exit
 local   ESTWRITE_SUFFIX     `"".sters""'
 local   ESTWRITE_SIGNATURE  `""*! Stata estimation sets written by estwrite.ado v. 1.0""'
 local   ESTWRITE_DATETIME   `""*! Date " + c("current_date") + " " + c("current_time")"'
+local   ESTWRITE_DATETIME_REPO   `""*! Date 01 Jan 1970 00:00:00""'
 local   ESTWRITE_ENDHEADER  `""*! <end_of_header>""'
 
 version 9.2
@@ -386,7 +391,7 @@ struct estwrite_estimates scalar estwrite_estimates_get(real scalar ster)
     return(e)
 }
 
-struct estwrite_fh scalar estwrite_file_init(estimates, id)
+struct estwrite_fh scalar estwrite_file_init(estimates, id, write_real_timestamp)
 {
     struct estwrite_fh scalar f
     real scalar replace
@@ -416,7 +421,12 @@ struct estwrite_fh scalar estwrite_file_init(estimates, id)
         exit(603)
     }
     if (_fput(f.fh, `ESTWRITE_SIGNATURE')<0)  estwrite_writeerror(f)
-    if (_fput(f.fh, `ESTWRITE_DATETIME')<0)   estwrite_writeerror(f)
+	if (write_real_timestamp) {
+		if (_fput(f.fh, `ESTWRITE_DATETIME')<0)   estwrite_writeerror(f)		
+	}
+	else {
+		if (_fput(f.fh, `ESTWRITE_DATETIME_REPO')<0)   estwrite_writeerror(f)		
+	}
     if (_fput(f.fh, `ESTWRITE_ENDHEADER')<0)  estwrite_writeerror(f)
     if (_fputmatrix(f.fh, estimates)<0)       estwrite_writeerror(f)
     if (_fputmatrix(f.fh, id)<0)              estwrite_writeerror(f)

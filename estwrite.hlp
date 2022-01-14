@@ -10,7 +10,7 @@ help for {hi:estwrite}
 {p 8 15 2}
 {cmdab:estwrite} [{it:namelist} {cmd:using}] {it:filename}
  [{cmd:,} {cmd:id(}{it:varname}{cmd:)} {cmd:alt} {cmd:estsave}
- {cmdab:r:eplace} {cmdab:a:ppend} ]
+ {cmdab:r:eplace} {cmdab:a:ppend}  {cmd:reproducible}]
 
 {p 8 15 2}
 {cmdab:estread} [{it:namelist} {cmd:using}] {it:filename}
@@ -124,6 +124,14 @@ or without the {cmd:alt} option may be combined in a single file. The
 with {cmd:id()} option (and the values of the ID variables have to
 coincide). Similarly, the {cmd:id()} option is not allowed if the file to
 append to was created without {cmd:id()} option.
+
+{p 4 8 2}{cmd:reproducible} causes {cmd:estwrite} to save a "reproducible"
+file that will not change if re-run. This can be beneficial when working with 
+systems that track file-changes (e.g., git or source code build-systems). 
+Typical estimate files include a creation timestamp, which makes them different 
+every time they are generated. Reproducible-generated files have a fixed 
+timestamp. For technical reasons, this option also forcibly enables the {it:alt} 
+option.
 
 {p 4 8 2}{cmd:describe} causes {cmd:estread} to display information on the
 contents of {it:filename} without importing the estimation sets.
