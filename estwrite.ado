@@ -1,4 +1,4 @@
-*! version 1.2.4 04sep2009
+*! version 1.2.5 19jan2022
 *! version 1.0.1 15may2007 (renamed from -eststo- to -estwrite-; -append- added)
 *! version 1.0.0 29apr2005 Ben Jann (ETH Zurich)
 prog define estwrite
@@ -8,10 +8,19 @@ prog define estwrite
     if `"`comma'"'=="," | `"`comma'"'=="" {
         local 0 `"using `macval(0)'"'
     }
-    syntax [anything] using/ [, Replace Append Label(str) id(varname) alt estsave ]
+    syntax [anything] using/ [, Replace Append Label(str) id(varname) alt ///
+        estsave REPROducible ]
     if c(stata_version)<9 | "`estsave'"!="" {
-         estwrite_dta `macval(0)'
-         exit
+        if "`reproducible'"!="" {
+            if "`estsave'"!="" {
+                di as err "reproducible and estsave not both allowed"
+                exit 198
+            }
+            di as err "option reproducible not supported in Stata 8"
+            exit 198
+        }
+        estwrite_dta `macval(0)'
+        exit
     }
     capt mata: mata drop ESTWRITE_FH
     capt mata: mata drop ESTWRITE_ESTS
@@ -103,8 +112,10 @@ end
 
 prog define estwrite_mata, sortpreserve
     version 9.2
-    syntax [anything] using/ [, Replace Append Label(str) id(varname) alt ] // label() not used
+    syntax [anything] using/ [, Replace Append Label(str) id(varname) alt ///
+        REPROducible ] // label() not used
     if c(stata_version)<10  local alt alt
+    if "`reproducible'"!="" local alt alt
     local ster = ("`alt'"=="")
     if "`append'"!=""&"`replace'"!="" {
         di as err "only one of replace and append allowed"
@@ -189,7 +200,7 @@ prog define estwrite_mata, sortpreserve
     if "`id'"!="" & "`append'"=="" {
         mata: ESTWRITE_ID = st_isstrvar("`id'") ? st_sdata(.,"`id'") : st_data(.,"`id'")
     }
-    mata: ESTWRITE_FH = estwrite_file_init(ESTWRITE_ESTS, ESTWRITE_ID)
+    mata: ESTWRITE_FH = estwrite_file_init(ESTWRITE_ESTS, ESTWRITE_ID, "`reproducible'"!="")
     if "`append'"!="" {
         mata: estwrite_appendster(ESTWRITE_FH, ESTWRITE_STER)
     }
@@ -237,10 +248,11 @@ end
 
 if c(stata_version)<9 exit
 
-local   ESTWRITE_SUFFIX     `"".sters""'
-local   ESTWRITE_SIGNATURE  `""*! Stata estimation sets written by estwrite.ado v. 1.0""'
-local   ESTWRITE_DATETIME   `""*! Date " + c("current_date") + " " + c("current_time")"'
-local   ESTWRITE_ENDHEADER  `""*! <end_of_header>""'
+local   ESTWRITE_SUFFIX         `"".sters""'
+local   ESTWRITE_SIGNATURE      `""*! Stata estimation sets written by estwrite.ado v. 1.0""'
+local   ESTWRITE_DATETIME       `""*! Date " + c("current_date") + " " + c("current_time")"'
+local   ESTWRITE_DATETIME_REPRO `""*! Date 01 Jan 1970 00:00:00""'
+local   ESTWRITE_ENDHEADER      `""*! <end_of_header>""'
 
 version 9.2
 mata:
@@ -386,10 +398,11 @@ struct estwrite_estimates scalar estwrite_estimates_get(real scalar ster)
     return(e)
 }
 
-struct estwrite_fh scalar estwrite_file_init(estimates, id)
+struct estwrite_fh scalar estwrite_file_init(estimates, id, repro)
 {
     struct estwrite_fh scalar f
     real scalar replace
+    string scalar timestamp
 
     /* ------------------------------------------------------------ */
     f.fn    = st_local("using")
@@ -415,8 +428,9 @@ struct estwrite_fh scalar estwrite_file_init(estimates, id)
         //rmexternal("ESTWRITE_FH")
         exit(603)
     }
+    timestamp = repro ? `ESTWRITE_DATETIME_REPRO' : `ESTWRITE_DATETIME'
     if (_fput(f.fh, `ESTWRITE_SIGNATURE')<0)  estwrite_writeerror(f)
-    if (_fput(f.fh, `ESTWRITE_DATETIME')<0)   estwrite_writeerror(f)
+    if (_fput(f.fh, timestamp)<0)             estwrite_writeerror(f)
     if (_fput(f.fh, `ESTWRITE_ENDHEADER')<0)  estwrite_writeerror(f)
     if (_fputmatrix(f.fh, estimates)<0)       estwrite_writeerror(f)
     if (_fputmatrix(f.fh, id)<0)              estwrite_writeerror(f)

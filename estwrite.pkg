@@ -1,9 +1,9 @@
 v 3
 d estwrite: module to store estimation results on disk
 d 
-d Author: Ben Jann, University of Bern, ben.jann@soz.unibe.ch
+d Author: Ben Jann, University of Bern, ben.jann@unibe.ch
 d
-d Distribution-Date: 20200417
+d Distribution-Date: 20220119
 f estwrite.hlp
 f estwrite.ado
 f estread.ado

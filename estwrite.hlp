@@ -1,27 +1,24 @@
 {smcl}
-{* 04sep2009}{...}
+{* 19jan2022}{...}
 {hline}
 help for {hi:estwrite}
 {hline}
 
 {title:Command to backup model estimates on disk}
 
-
 {p 8 15 2}
 {cmdab:estwrite} [{it:namelist} {cmd:using}] {it:filename}
  [{cmd:,} {cmd:id(}{it:varname}{cmd:)} {cmd:alt} {cmd:estsave}
- {cmdab:r:eplace} {cmdab:a:ppend} ]
+ {cmdab:r:eplace} {cmdab:a:ppend} {cmdab:repro:ducible} ]
 
 {p 8 15 2}
 {cmdab:estread} [{it:namelist} {cmd:using}] {it:filename}
  [{cmd:,} {cmd:id(}{it:varname}{cmd:)} {cmd:estsave} {cmdab:d:escribe} ]
 
-
 {p 4 4 2}
 where {it:namelist} is a name, a list of names, or {cmd:_all}; the {cmd:*}
 and {cmd:?} wildcards are allowed. A name may also be {cmd:.}, meaning
 the current (active) estimates.
-
 
 
 {title:Description}
@@ -53,7 +50,6 @@ and allows storing or retrieving multiple sets in one call.)
 {p 8 12 4}
 (2) The {cmd:e(sample)} (estimation sample) may be stored and
 recovered using the {cmd:id()} option.
-
 
 {p 8 12 4}
 (3) {cmd:e()}-returns that have a name starting with
@@ -124,6 +120,14 @@ or without the {cmd:alt} option may be combined in a single file. The
 with {cmd:id()} option (and the values of the ID variables have to
 coincide). Similarly, the {cmd:id()} option is not allowed if the file to
 append to was created without {cmd:id()} option.
+
+{p 4 8 2}{cmd:reproducible} causes {cmd:estwrite} to save a "reproducible"
+file that will not change if re-run. This can be beneficial when working with 
+systems that track file-changes (e.g., git or source code 
+build-systems). Files saved by {cmd:estwrite} contain a creation 
+timestamp, which makes them different every time they are generated. Reproducible-generated
+files have a fixed timestamp. For technical reasons, this option also forcibly
+enables the {cmd:alt} option.
 
 {p 4 8 2}{cmd:describe} causes {cmd:estread} to display information on the
 contents of {it:filename} without importing the estimation sets.
@@ -227,7 +231,9 @@ the exported/imported estimation sets.
 
 {title:Author}
 
-{p 4 4 2} Ben Jann, ETH Zurich, jannb@ethz.ch
+{p 4 4 2} Ben Jann, University of Bern, ben.jann@unibe.ch.
+
+{p 4 4 2} Option {cmd:reproducible} has been implemented by Brian Quistorff.
 
 {pstd}
     Thanks for citing this software as follows:

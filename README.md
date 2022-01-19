@@ -20,6 +20,10 @@ Installation from GitHub:
 
 Main changes:
 
+    19jan2022
+    - option -reproducible- added, as suggested by Brian Quistorff (see pull
+      request #3)
+
     17apr2020
     - installation files added to GitHub distribution
 
